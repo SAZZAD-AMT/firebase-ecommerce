@@ -1,1 +1,3 @@
 node_modules/
+Firebase_db_control/__pycache__
+Firebase_db_control/serviceAccountKey.json

@@ -7,7 +7,10 @@ import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetailPage from './pages/ProductDetailPage';
 import AdminPanel from './pages/AdminPanel';
-import AdminLogin from './components/admin/AdminLogin'; // ✔ fixed
+import Login from "./components/auth/Login";
+import ProfilePage from "./pages/ProfilePage";
+import OrderHistoryPage from "./pages/OrderHistoryPage";
+import InvoicePage from './pages/InvoicePage';
 import './App.css';
 
 function App() {
@@ -21,10 +24,16 @@ function App() {
             <Route path="/products" element={<Products />} />
             <Route path="/product/:id" element={<ProductDetailPage />} />
 
-            {/* Admin Login Route */}
-            <Route path="/admin/login" element={<AdminLogin />} />
+            {/* ✅ Single Login Route */}
+            <Route path="/login" element={<Login />} />
+
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/orders" element={<OrderHistoryPage />} />
+
+            {/* Admin Dashboard */}
             <Route path="/admin/*" element={<AdminPanel />} />
 
+            <Route path="/admin/invoice" element={<InvoicePage />} />       
           </Routes>
         </div>
       </Router>

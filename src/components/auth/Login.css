@@ -1,0 +1,137 @@
+/* General page */
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #f0f2f5;
+  font-family: 'Arial', sans-serif;
+}
+
+/* Container split left and right */
+.login-container {
+  display: flex;
+  width: 900px;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+/* Left side */
+.login-left {
+  flex: 1;
+  background: #1877f2;
+  color: white;
+  padding: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-left h1 {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.login-left p {
+  font-size: 18px;
+}
+
+/* Right side */
+.login-right {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 350px;
+}
+
+.tab-buttons {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.tab-buttons button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: #f0f2f5;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.tab-buttons button.active {
+  background: #1877f2;
+  color: white;
+  border-radius: 5px 5px 0 0;
+}
+
+.tab-buttons button:not(.active):hover {
+  background: #e4e6eb;
+}
+
+.form input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+.password-container {
+  position: relative;
+}
+
+.show-pass {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #1877f2;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.form button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: #1877f2;
+  color: white;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.form button:hover {
+  background: #145dbf;
+}
+
+.error {
+  color: red;
+  text-align: center;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.switch {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.switch span {
+  color: #1877f2;
+  cursor: pointer;
+  font-weight: bold;
+}

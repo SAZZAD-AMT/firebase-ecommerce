@@ -1,179 +1,254 @@
 // src/components/admin/CategoryManager.jsx
-import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import React, { useEffect, useState } from "react";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc
+} from "firebase/firestore";
+import { db } from "../../config/firebase";
 
 const CategoryManager = () => {
   const [categories, setCategories] = useState([]);
-  const [newCategory, setNewCategory] = useState('');
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState(null);
-  const [editingName, setEditingName] = useState('');
 
-  // Fetch categories
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      const snapshot = await getDocs(collection(db, 'categories'));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCategories(data);
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Form state
+  const [form, setForm] = useState({
+    categoryId: "",
+    categoryName: "",
+    status: "active" // optional status
+  });
+  const [editingId, setEditingId] = useState(null);
+
+  // Filter/search
+  const [search, setSearch] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("all");
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  const handleAddCategory = async () => {
-    if (!newCategory.trim()) return;
-    try {
-      const docRef = await addDoc(collection(db, 'categories'), {
-        name: newCategory.trim(),
-        createdAt: new Date(),
+  const fetchCategories = async () => {
+  setLoading(true);
+  try {
+    const snapshot = await getDocs(collection(db, "categories"));
+    const data = snapshot.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        categoryId: d.category_id,
+        categoryName: d.category_name,
+        status: d.is_active ? "active" : "inactive",
+        createdAt: d.created_at,
+        updatedAt: d.updated_at,
+        isDeleted: d.is_deleted
+      };
+    });
+    setCategories(data);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+  };
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!form.categoryId || !form.categoryName) {
+    alert("Category ID and Name are required");
+    return;
+  }
+
+  const payload = {
+    category_id: form.categoryId,
+    category_name: form.categoryName,
+    is_active: form.status === "active",
+    is_deleted: false,
+    updated_at: new Date()
+  };
+
+  try {
+    if (editingId) {
+      await updateDoc(doc(db, "categories", editingId), payload);
+    } else {
+      await addDoc(collection(db, "categories"), {
+        ...payload,
+        created_at: new Date()
       });
-      setCategories([...categories, { id: docRef.id, name: newCategory.trim() }]);
-      setNewCategory('');
-    } catch (err) {
-      console.error('Error adding category:', err);
     }
+    resetForm();
+    fetchCategories();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to save category");
+  }
   };
 
-  const startEditing = (id, name) => {
-    setEditingId(id);
-    setEditingName(name);
-  };
 
-  const saveEdit = async (id) => {
-    if (!editingName.trim()) return;
-    try {
-      const categoryRef = doc(db, 'categories', id);
-      await updateDoc(categoryRef, { name: editingName.trim() });
-      setCategories(categories.map(cat => cat.id === id ? { ...cat, name: editingName.trim() } : cat));
-      setEditingId(null);
-      setEditingName('');
-    } catch (err) {
-      console.error('Error updating category:', err);
-    }
-  };
-
-  const cancelEdit = () => {
+  const resetForm = () => {
+    setForm({
+      categoryId: "",
+      categoryName: "",
+      status: "active"
+    });
     setEditingId(null);
-    setEditingName('');
   };
 
-  const handleDeleteCategory = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this category?')) return;
+  const handleEdit = (category) => {
+  setForm({
+    categoryId: category.categoryId || "",
+    categoryName: category.categoryName || "",
+    status: category.status || "active"
+  });
+  setEditingId(category.id);
+  };
+
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this category?")) return;
     try {
-      await deleteDoc(doc(db, 'categories', id));
-      setCategories(categories.filter(cat => cat.id !== id));
+      await deleteDoc(doc(db, "categories", id));
+      fetchCategories();
     } catch (err) {
-      console.error('Error deleting category:', err);
+      console.error(err);
+      alert("Failed to delete category");
     }
   };
+
+  // Filtered categories
+  const filteredCategories = categories.filter((cat) => {
+    const matchesSearch = cat.categoryId?.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus =
+      selectedStatus === "all" || cat.status === selectedStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  if (loading) {
+    return (
+      <div className="loading flex justify-center items-center h-screen">
+        <div className="spinner border-4 border-indigo-500 border-t-transparent rounded-full w-12 h-12 animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">📂 Category Manager</h2>
+    <div>
+      <h1 style={{ fontSize: "2rem", fontWeight: "700", marginBottom: "2rem" }}>
+        📦 Manage Categories
+      </h1>
 
-      {/* Add Category */}
-      <div className="flex gap-2 mb-6">
+      {/* Filters */}
+      <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", flexWrap: "wrap" }}>
         <input
           type="text"
-          placeholder="New category name"
-          value={newCategory}
-          onChange={(e) => setNewCategory(e.target.value)}
-          className="p-2 border rounded flex-grow"
+          placeholder="🔍 Search Category ID"
+          className="form-control"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ maxWidth: "250px" }}
         />
-        <button
-          onClick={handleAddCategory}
-          className="bg-black text-white px-4 rounded hover:opacity-80"
+
+        <select
+          className="form-control"
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          style={{ maxWidth: "200px" }}
         >
-          Add
-        </button>
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
       </div>
 
-      {/* Categories Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded shadow">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 border-b text-left text-gray-600">Category ID</th>
-              <th className="px-4 py-2 border-b text-left text-gray-600">Category Name</th>
-              <th className="px-4 py-2 border-b text-left text-gray-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="3" className="px-4 py-6 text-center text-gray-500">
-                  Loading categories...
-                </td>
-              </tr>
-            ) : categories.length === 0 ? (
-              <tr>
-                <td colSpan="3" className="px-4 py-6 text-center text-gray-500">
-                  No categories found.
-                </td>
-              </tr>
-            ) : (
-              categories.map((cat) => (
-                <tr key={cat.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 border-b">{cat.id}</td>
-                  <td className="px-4 py-2 border-b">
-                    {editingId === cat.id ? (
-                      <input
-                        type="text"
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        className="p-1 border rounded w-full"
-                      />
-                    ) : (
-                      cat.name
-                    )}
-                  </td>
-                  <td className="px-4 py-2 border-b flex gap-2">
-                    {editingId === cat.id ? (
-                      <>
-                        <button
-                          onClick={() => saveEdit(cat.id)}
-                          className="bg-green-500 text-white px-3 py-1 rounded hover:opacity-80"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="bg-gray-400 text-white px-3 py-1 rounded hover:opacity-80"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => startEditing(cat.id, cat.name)}
-                          className="bg-blue-500 text-white px-3 py-1 rounded hover:opacity-80"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCategory(cat.id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:opacity-80"
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))
+      {/* Add/Edit Form */}
+      <div className="card" style={{ marginBottom: "2rem", padding: "1rem" }}>
+        <h3 style={{ marginBottom: "1rem" }}>
+          {editingId ? "✏️ Edit Category" : "➕ Add New Category"}
+        </h3>
+
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "1rem"
+          }}
+        >
+          <input
+            name="categoryId"
+            value={form.categoryId}
+            onChange={handleChange}
+            placeholder="CategoryID (e.g. C101)"
+            className="form-control"
+          />
+          <input
+            name="categoryName"
+            value={form.categoryName}
+            onChange={handleChange}
+            placeholder="CategoryName (e.g. Electronics)"
+            className="form-control"
+          />
+          <select
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+            className="form-control"
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
+          <div style={{ display: "flex", gap: "1rem" }}>
+            <button type="submit" className="btn btn-primary">
+              {editingId ? "Update" : "Add"}
+            </button>
+            {editingId && (
+              <button type="button" onClick={resetForm} className="btn btn-outline">
+                Cancel
+              </button>
             )}
-          </tbody>
-        </table>
+          </div>
+        </form>
       </div>
+
+      {/* Category List */}
+      {filteredCategories.length === 0 ? (
+        <div className="card" style={{ textAlign: "center", padding: "2rem" }}>
+          No categories found
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            gap: "1.5rem"
+          }}
+        >
+          {filteredCategories.map((cat) => (
+            <div key={cat.id} className="card" style={{ padding: "1rem" }}>
+              <h4 style={{ fontWeight: "600" }}>{cat.categoryName}</h4>
+              <p style={{ color: "#6b7280" }}>ID: {cat.categoryId}</p>
+              <p style={{ marginTop: "0.5rem", color: "#6b7280" }}>
+              </p>
+
+              <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                <button className="btn btn-outline" onClick={() => handleEdit(cat)}>
+                  Edit
+                </button>
+                <button className="btn btn-danger" onClick={() => handleDelete(cat.id)}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,9 +1,19 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const ProductCard = ({ product }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/product/${product.id}`);
+  };
+
   return (
-    <div className="card product-card">
+    <div 
+      className="card product-card" 
+      style={{ cursor: 'pointer' }}
+      onClick={handleClick} // entire card clickable
+    >
       <div className="product-image">
         <img 
           src={product.imageUrl || 'https://via.placeholder.com/300'} 
@@ -60,9 +70,15 @@ const ProductCard = ({ product }) => {
           }}>
             ${product.price.toFixed(2)}
           </span>
-          <Link to={`/product/${product.id}`} className="btn btn-primary">
-            View Details
-          </Link>
+          <button 
+            className="btn btn-primary"
+            onClick={(e) => {
+              e.stopPropagation(); // prevent card click, optional
+              handleClick();
+            }}
+          >
+            Details
+          </button>
         </div>
       </div>
     </div>

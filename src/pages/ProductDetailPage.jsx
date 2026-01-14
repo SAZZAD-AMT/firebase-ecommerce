@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, addDoc, collection } from 'firebase/firestore';
+import { query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 const ProductDetailPage = () => {
@@ -24,13 +25,36 @@ const ProductDetailPage = () => {
   }, [id]);
 
   const fetchProduct = async () => {
-    try {
-      const productDoc = await getDoc(doc(db, 'products', id));
-      if (productDoc.exists()) {
-        setProduct({ id: productDoc.id, ...productDoc.data() });
-      } else {
-        navigate('/');
+  try {
+    const productSnap = await getDoc(doc(db, 'products', id));
+
+    if (!productSnap.exists()) {
+      navigate('/');
+      return;
+    }
+
+    const productData = productSnap.data();
+
+      // 🔹 Fetch category name using category_id
+      let category_name = '';
+      if (productData.category_id) {
+        const catQuery = query(
+          collection(db, 'categories'),
+          where('category_id', '==', productData.category_id)
+        );
+        const catSnap = await getDocs(catQuery);
+
+        if (!catSnap.empty) {
+          category_name = catSnap.docs[0].data().category_name;
+        }
       }
+
+      setProduct({
+        id: productSnap.id,
+        ...productData,
+        category_name
+      });
+
     } catch (error) {
       console.error('Error fetching product:', error);
     } finally {
@@ -51,20 +75,20 @@ const ProductDetailPage = () => {
 
     try {
       const order = {
-        customerName: formData.customerName,
+        customer_name: formData.customerName,
         mobile: formData.mobile,
         address: formData.address,
         items: [{
-          productId: product.id,
-          productName: product.name,
-          price: product.price,
+          product_id: product.id,
+          product_name: product.product_name,
+          price: product.sell_price,
           quantity: parseInt(formData.quantity),
-          imageUrl: product.imageUrl
+          image_url: product.image_url
         }],
-        totalAmount: product.price * parseInt(formData.quantity),
+        total_amount: product.sell_price * parseInt(formData.quantity),
         status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        created_at: new Date(),
+        updated_at: new Date()
       };
 
       await addDoc(collection(db, 'orders'), order);
@@ -124,8 +148,8 @@ const ProductDetailPage = () => {
         {/* Product Details */}
         <div>
           <img
-            src={product.imageUrl || 'https://via.placeholder.com/500'}
-            alt={product.name}
+            src={product.image_url || 'https://via.placeholder.com/500'}
+            alt={product.product_name}
             style={{
               width: '100%',
               height: '400px',
@@ -143,7 +167,7 @@ const ProductDetailPage = () => {
             fontSize: '0.9rem',
             marginBottom: '1rem'
           }}>
-            {product.categoryName}
+            {product.category_name}
           </span>
           <h1 style={{ 
             fontSize: '2rem',
@@ -151,14 +175,14 @@ const ProductDetailPage = () => {
             marginBottom: '1rem',
             color: '#1f2937'
           }}>
-            {product.name}
+            {product.product_name}
           </h1>
           <p style={{ 
             color: '#6b7280',
             lineHeight: '1.6',
             marginBottom: '1.5rem'
           }}>
-            {product.description}
+            {product.product_description}
           </p>
           <div style={{
             fontSize: '2rem',
@@ -166,9 +190,9 @@ const ProductDetailPage = () => {
             color: '#6366f1',
             marginBottom: '1rem'
           }}>
-            ${product.price.toFixed(2)}
+            ${product.sell_price.toFixed(2)}
           </div>
-          {product.stock > 0 ? (
+          {product.stock_qty > 0 ? (
             <div style={{ color: '#10b981', fontWeight: '600' }}>
               ✓ In Stock ({product.stock} available)
             </div>
@@ -255,7 +279,7 @@ const ProductDetailPage = () => {
                 marginBottom: '0.5rem'
               }}>
                 <span>Price per unit:</span>
-                <span>${product.price.toFixed(2)}</span>
+                <span>${product.sell_price.toFixed(2)}</span>
               </div>
               <div style={{
                 display: 'flex',
@@ -274,18 +298,24 @@ const ProductDetailPage = () => {
                 color: '#6366f1'
               }}>
                 <span>Total:</span>
-                <span>${(product.price * formData.quantity).toFixed(2)}</span>
+                <span>${(product.sell_price * formData.quantity).toFixed(2)}</span>
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={submitting || product.stock === 0}
-              style={{ width: '100%' }}
-            >
-              {submitting ? 'Placing Order...' : 'Place Order'}
-            </button>
+            <div style={{ textAlign: 'center' }}> {/* center wrapper */}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={submitting || product.stock === 0}
+                style={{
+                  padding: '0.75rem 2rem',  // optional: make it look nice
+                  fontSize: '1rem',
+                  borderRadius: '8px',
+                }}
+              >
+                {submitting ? 'Placing Order...' : 'Confirm Order'}
+              </button>
+            </div>
           </form>
         </div>
       </div>

@@ -1,12 +1,13 @@
 // src/pages/Products.jsx
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // <-- useNavigate for programmatic navigation
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate(); // <-- initialize navigate
 
   useEffect(() => {
     fetchProducts();
@@ -39,23 +40,21 @@ const Products = () => {
         gap: "20px"
       }}>
         {products.map(product => (
-          <div key={product.id} className="card">
+          <div
+            key={product.id}
+            className="card"
+            style={{ cursor: "pointer" }}
+            onClick={() => navigate(`/product/${product.id}`)} // <-- entire card clickable
+          >
             <img
-              src={product.imageUrl || "https://via.placeholder.com/300"}
-              alt={product.name}
+              src={product.image_url || "https://via.placeholder.com/300"}
+              alt={product.product_name}
               style={{ width: "100%", height: "200px", objectFit: "cover" }}
             />
-
-            <h3>{product.name}</h3>
-            <p>${product.price}</p>
-
-            <Link
-              to={`/product/${product.id}`}
-              className="btn btn-primary"
-              style={{ width: "100%", marginTop: "10px" }}
-            >
-              View Details
-            </Link>
+            <h3>{product.product_name}</h3>
+            <p>${product.sell_price}</p>
+            <p>{product.product_description}</p>
+            <p>Stock: {product.stock_qty}</p>
           </div>
         ))}
       </div>
